@@ -1,0 +1,17 @@
+{
+  "emulators": {
+    "hosting": {
+      "host": "localhost",
+      "port": 5001
+    }
+  },
+  "hosting": {
+    "public": "dist",
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
