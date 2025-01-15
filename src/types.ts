@@ -11,4 +11,5 @@ export interface MarkdownFile {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  isPublic: boolean;
 }
