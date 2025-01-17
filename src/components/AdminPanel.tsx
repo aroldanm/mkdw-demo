@@ -1,63 +1,47 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, FileText, Pencil, Check, X, Share2, ExternalLink, Globe, Lock } from 'lucide-react';
+import { Plus, Trash2, FileText, Pencil, Check, X, Share2, Edit, Globe, Lock, Upload } from 'lucide-react';
 import type { MarkdownFile } from '../types';
+import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 
 interface AdminPanelProps {
   markdownFiles: MarkdownFile[];
   onUpload: (file: File) => void;
   onDelete: (fileId: string) => void;
   onSelect: (file: MarkdownFile) => void;
+  onEdit: (file: MarkdownFile) => void;
   onUpdateTitle: (fileId: string, newTitle: string) => void;
   onToggleVisibility: (fileId: string) => void;
   getShareableLink: (fileId: string) => string;
+  onCreateNew: () => void;
 }
 
 export function AdminPanel({ 
   markdownFiles, 
   onUpload, 
   onDelete, 
-  onSelect, 
+  onSelect,
+  onEdit,
   onUpdateTitle,
   onToggleVisibility,
-  getShareableLink 
+  getShareableLink,
+  onCreateNew
 }: AdminPanelProps) {
-  const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const processFiles = (files: File[]) => {
-    const markdownFiles = files.filter(file => file.name.endsWith('.md'));
-    markdownFiles.forEach(file => {
-      onUpload(file);
-    });
-
-    if (markdownFiles.length === 0) {
-      alert('Please select only markdown (.md) files');
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    processFiles(files);
-  };
+  const [fileToDelete, setFileToDelete] = useState<MarkdownFile | null>(null);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      processFiles(Array.from(files));
+      const markdownFiles = Array.from(files).filter(file => file.name.endsWith('.md'));
+      markdownFiles.forEach(file => {
+        onUpload(file);
+      });
+
+      if (markdownFiles.length === 0) {
+        alert('Please select only markdown (.md) files');
+      }
     }
   };
 
@@ -91,6 +75,18 @@ export function AdminPanel({
     }
   };
 
+  const handleDelete = (e: React.MouseEvent, file: MarkdownFile) => {
+    e.stopPropagation();
+    setFileToDelete(file);
+  };
+
+  const confirmDelete = () => {
+    if (fileToDelete) {
+      onDelete(fileToDelete.id);
+      setFileToDelete(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -104,25 +100,19 @@ export function AdminPanel({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">Your Markdown Files</h2>
-        
-        {/* Upload area */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center ${
-            isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <FileText className="mx-auto mb-4 text-gray-400" size={48} />
-          <p className="text-gray-600 mb-4">
-            Drag and drop your markdown files here, or click to select
-          </p>
-          <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-2xl font-bold">Your Markdown Files</h2>
+        <div className="flex gap-4">
+          <button
+            onClick={onCreateNew}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer transition-colors"
+          >
             <Plus size={20} className="mr-2" />
-            <span>Upload Markdown Files</span>
+            <span>Create new</span>
+          </button>
+          <label className="inline-flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer transition-colors">
+            <Upload size={20} className="mr-2" />
+            <span>Upload files</span>
             <input
               type="file"
               accept=".md"
@@ -225,7 +215,7 @@ export function AdminPanel({
                   </button>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-3 w-[120px] ml-auto">
+                  <div className="flex items-center justify-end gap-3 w-[100px] ml-auto">
                     <div className="w-[20px]">
                       <button
                         onClick={(e) => file.isPublic && handleShare(e, file.id)}
@@ -247,19 +237,16 @@ export function AdminPanel({
                     </div>
                     <div className="w-[20px]">
                       <button
-                        onClick={() => onSelect(file)}
+                        onClick={() => onEdit(file)}
                         className="text-blue-600 hover:text-blue-800"
-                        title="Open document"
+                        title="Edit document"
                       >
-                        <ExternalLink size={20} />
+                        <Edit size={20} />
                       </button>
                     </div>
                     <div className="w-[20px]">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(file.id);
-                        }}
+                        onClick={(e) => handleDelete(e, file)}
                         className="text-red-600 hover:text-red-900"
                         title="Delete"
                       >
@@ -280,6 +267,14 @@ export function AdminPanel({
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={fileToDelete !== null}
+        onClose={() => setFileToDelete(null)}
+        onConfirm={confirmDelete}
+        fileName={fileToDelete?.title || ''}
+      />
     </div>
   );
 }

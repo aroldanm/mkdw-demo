@@ -13,3 +13,13 @@ export interface MarkdownFile {
   updatedAt: string;
   isPublic: boolean;
 }
+
+export type AuthProvider = 'github' | 'google' | 'apple' | 'email';
+
+export interface AuthState {
+  isSignUp: boolean;
+  email: string;
+  password: string;
+  name?: string;
+  confirmPassword?: string;
+}
